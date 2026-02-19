@@ -1,0 +1,9 @@
+{
+  "mcpServers": {
+    "limitless": {
+      "command": "bash",
+      "args": ["./run_server.sh"],
+      "env": {}
+    }
+  }
+}
