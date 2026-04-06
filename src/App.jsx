@@ -29,17 +29,19 @@ export default function App() {
     setError(false)
     try {
       const resp = await apiFetch('/lifelogs?limit=1', key)
-      if (resp.data) {
+      if (resp.data !== undefined) {
         setConnected(true)
         setConnecting(false)
         return true
       }
-    } catch {
+      setConnecting(false)
+      return false
+    } catch (e) {
+      console.error('API verification failed:', e)
       setConnecting(false)
       setError(true)
       return false
     }
-    return false
   }, [])
 
   const loadStats = useCallback(async (key, days = 90) => {
