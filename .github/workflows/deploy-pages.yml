@@ -5,6 +5,7 @@ on:
     branches:
       - claude/limitless-pendant-dashboard-1VPg1
       - claude/check-latest-updates-kQDyc
+      - main
   workflow_dispatch:
 
 permissions:
