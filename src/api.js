@@ -1,9 +1,14 @@
 const API_BASE = 'https://api.limitless.ai/v1'
 
 export async function apiFetch(path, apiKey) {
-  const resp = await fetch(`${API_BASE}${path}`, {
-    headers: { 'X-API-Key': apiKey },
-  })
+  let resp
+  try {
+    resp = await fetch(`${API_BASE}${path}`, {
+      headers: { 'X-API-Key': apiKey },
+    })
+  } catch (e) {
+    throw new Error('Network error - the API may not allow requests from this domain (CORS). Try running locally instead. Details: ' + e.message)
+  }
   if (!resp.ok) {
     const text = await resp.text()
     throw new Error(`API error ${resp.status}: ${text}`)

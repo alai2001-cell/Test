@@ -11,9 +11,13 @@ export default function Setup({ onConnect, connecting }) {
       return
     }
     setError('')
-    const ok = await onConnect(key.trim())
-    if (!ok) {
-      setError('Invalid API key or connection failed. Check your key and try again.')
+    try {
+      const ok = await onConnect(key.trim())
+      if (!ok) {
+        setError('Invalid API key or connection failed. Check your key and try again.')
+      }
+    } catch (e) {
+      setError(e.message || 'Connection failed.')
     }
   }
 
