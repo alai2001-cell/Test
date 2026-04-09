@@ -1,0 +1,8 @@
+{
+  "mcpServers": {
+    "whoop": {
+      "command": "python",
+      "args": ["whoop_mcp_server.py"]
+    }
+  }
+}

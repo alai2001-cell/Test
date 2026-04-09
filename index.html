@@ -1,0 +1,2052 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Health Dashboard</title>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.7/dist/chart.umd.min.js"></script>
+  <style>
+    :root {
+      --bg-primary: #0f1117;
+      --bg-secondary: #1a1d27;
+      --bg-card: #222536;
+      --bg-hover: #2a2e42;
+      --border: #2e3348;
+      --text-primary: #e8eaed;
+      --text-secondary: #9aa0b4;
+      --text-muted: #6b7185;
+      --accent: #6c63ff;
+      --accent-hover: #5a52d5;
+      --accent-light: rgba(108, 99, 255, 0.15);
+      --green: #34d399;
+      --green-light: rgba(52, 211, 153, 0.15);
+      --amber: #fbbf24;
+      --amber-light: rgba(251, 191, 36, 0.15);
+      --rose: #f472b6;
+      --rose-light: rgba(244, 114, 182, 0.15);
+      --cyan: #22d3ee;
+      --cyan-light: rgba(34, 211, 238, 0.15);
+      --radius: 12px;
+      --shadow: 0 2px 12px rgba(0, 0, 0, 0.3);
+    }
+
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+      background: var(--bg-primary);
+      color: var(--text-primary);
+      line-height: 1.6;
+      min-height: 100vh;
+    }
+
+    /* Scrollbar */
+    ::-webkit-scrollbar { width: 6px; height: 6px; }
+    ::-webkit-scrollbar-track { background: var(--bg-secondary); }
+    ::-webkit-scrollbar-thumb { background: var(--border); border-radius: 3px; }
+    ::-webkit-scrollbar-thumb:hover { background: var(--text-muted); }
+
+    /* Header */
+    .header {
+      background: var(--bg-secondary);
+      border-bottom: 1px solid var(--border);
+      padding: 16px 32px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      position: sticky;
+      top: 0;
+      z-index: 100;
+    }
+
+    .header-left {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+
+    .logo {
+      width: 36px;
+      height: 36px;
+      background: linear-gradient(135deg, var(--accent), var(--cyan));
+      border-radius: 10px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 18px;
+      font-weight: 700;
+      color: white;
+    }
+
+    .header h1 {
+      font-size: 20px;
+      font-weight: 600;
+      letter-spacing: -0.3px;
+    }
+
+    .header h1 span {
+      color: var(--text-muted);
+      font-weight: 400;
+    }
+
+    .header-actions {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+
+    .connection-status {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      font-size: 13px;
+      color: var(--text-muted);
+    }
+
+    .status-dot {
+      width: 8px;
+      height: 8px;
+      border-radius: 50%;
+      background: var(--text-muted);
+    }
+
+    .status-dot.connected { background: var(--green); }
+    .status-dot.error { background: var(--rose); }
+
+    /* Buttons */
+    .btn {
+      padding: 8px 16px;
+      border-radius: 8px;
+      border: 1px solid var(--border);
+      background: var(--bg-card);
+      color: var(--text-primary);
+      font-size: 13px;
+      cursor: pointer;
+      transition: all 0.15s;
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+    }
+
+    .btn:hover { background: var(--bg-hover); border-color: var(--text-muted); }
+
+    .btn-primary {
+      background: var(--accent);
+      border-color: var(--accent);
+      color: white;
+    }
+
+    .btn-primary:hover { background: var(--accent-hover); }
+
+    .btn-sm { padding: 5px 10px; font-size: 12px; }
+
+    /* Setup Screen */
+    .setup-screen {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      min-height: calc(100vh - 65px);
+      padding: 32px;
+    }
+
+    .setup-card {
+      background: var(--bg-card);
+      border: 1px solid var(--border);
+      border-radius: 16px;
+      padding: 48px;
+      max-width: 480px;
+      width: 100%;
+      text-align: center;
+    }
+
+    .setup-card .logo {
+      width: 64px;
+      height: 64px;
+      font-size: 32px;
+      margin: 0 auto 24px;
+      border-radius: 16px;
+    }
+
+    .setup-card h2 {
+      font-size: 24px;
+      margin-bottom: 8px;
+    }
+
+    .setup-card p {
+      color: var(--text-secondary);
+      margin-bottom: 24px;
+      font-size: 14px;
+    }
+
+    .input-group {
+      display: flex;
+      gap: 8px;
+      margin-bottom: 16px;
+    }
+
+    .input-group input {
+      flex: 1;
+      padding: 10px 14px;
+      border-radius: 8px;
+      border: 1px solid var(--border);
+      background: var(--bg-secondary);
+      color: var(--text-primary);
+      font-size: 14px;
+      outline: none;
+      transition: border-color 0.15s;
+    }
+
+    .input-group input:focus { border-color: var(--accent); }
+    .input-group input::placeholder { color: var(--text-muted); }
+
+    .setup-error {
+      color: var(--rose);
+      font-size: 13px;
+      margin-top: 8px;
+      display: none;
+    }
+
+    .setup-hint {
+      color: var(--text-muted);
+      font-size: 12px;
+      margin-top: 16px;
+    }
+
+    .setup-hint a {
+      color: var(--accent);
+      text-decoration: none;
+    }
+
+    .setup-hint a:hover { text-decoration: underline; }
+
+    /* Main Layout */
+    .main {
+      padding: 24px 32px;
+      max-width: 1400px;
+      margin: 0 auto;
+    }
+
+    /* Stats Grid */
+    .stats-grid {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 16px;
+      margin-bottom: 24px;
+    }
+
+    .stat-card {
+      background: var(--bg-card);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      padding: 20px;
+      transition: border-color 0.15s;
+    }
+
+    .stat-card:hover { border-color: var(--text-muted); }
+
+    .stat-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-bottom: 12px;
+    }
+
+    .stat-label {
+      font-size: 13px;
+      color: var(--text-secondary);
+      font-weight: 500;
+    }
+
+    .stat-icon {
+      width: 36px;
+      height: 36px;
+      border-radius: 10px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 16px;
+    }
+
+    .stat-icon.purple { background: var(--accent-light); color: var(--accent); }
+    .stat-icon.green { background: var(--green-light); color: var(--green); }
+    .stat-icon.amber { background: var(--amber-light); color: var(--amber); }
+    .stat-icon.rose { background: var(--rose-light); color: var(--rose); }
+
+    .stat-value {
+      font-size: 28px;
+      font-weight: 700;
+      letter-spacing: -1px;
+      margin-bottom: 2px;
+    }
+
+    .stat-sub {
+      font-size: 12px;
+      color: var(--text-muted);
+    }
+
+    /* Grid Layout */
+    .grid-2 {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 16px;
+      margin-bottom: 24px;
+    }
+
+    .grid-2.wide-left {
+      grid-template-columns: 2fr 1fr;
+    }
+
+    /* Card */
+    .card {
+      background: var(--bg-card);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      overflow: hidden;
+    }
+
+    .card-header {
+      padding: 16px 20px;
+      border-bottom: 1px solid var(--border);
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+    }
+
+    .card-title {
+      font-size: 15px;
+      font-weight: 600;
+    }
+
+    .card-body { padding: 20px; }
+
+    /* Chart */
+    .chart-container {
+      position: relative;
+      height: 260px;
+      padding: 20px;
+    }
+
+    /* Filters */
+    .filters-bar {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      margin-bottom: 24px;
+      flex-wrap: wrap;
+    }
+
+    .search-input {
+      flex: 1;
+      min-width: 240px;
+      padding: 9px 14px 9px 36px;
+      border-radius: 8px;
+      border: 1px solid var(--border);
+      background: var(--bg-card);
+      color: var(--text-primary);
+      font-size: 14px;
+      outline: none;
+      transition: border-color 0.15s;
+    }
+
+    .search-input:focus { border-color: var(--accent); }
+    .search-input::placeholder { color: var(--text-muted); }
+
+    .search-wrap {
+      position: relative;
+      flex: 1;
+      min-width: 240px;
+    }
+
+    .search-wrap::before {
+      content: '\1F50D';
+      position: absolute;
+      left: 12px;
+      top: 50%;
+      transform: translateY(-50%);
+      font-size: 14px;
+      opacity: 0.5;
+    }
+
+    .date-input {
+      padding: 9px 14px;
+      border-radius: 8px;
+      border: 1px solid var(--border);
+      background: var(--bg-card);
+      color: var(--text-primary);
+      font-size: 14px;
+      outline: none;
+    }
+
+    .date-input:focus { border-color: var(--accent); }
+
+    .filter-chip {
+      padding: 8px 14px;
+      border-radius: 8px;
+      border: 1px solid var(--border);
+      background: var(--bg-card);
+      color: var(--text-secondary);
+      font-size: 13px;
+      cursor: pointer;
+      transition: all 0.15s;
+    }
+
+    .filter-chip:hover { border-color: var(--text-muted); }
+    .filter-chip.active {
+      border-color: var(--accent);
+      background: var(--accent-light);
+      color: var(--accent);
+    }
+
+    /* Lifelog List */
+    .lifelog-list {
+      display: flex;
+      flex-direction: column;
+    }
+
+    .lifelog-item {
+      padding: 16px 20px;
+      border-bottom: 1px solid var(--border);
+      cursor: pointer;
+      transition: background 0.15s;
+    }
+
+    .lifelog-item:last-child { border-bottom: none; }
+    .lifelog-item:hover { background: var(--bg-hover); }
+
+    .lifelog-item.active {
+      background: var(--accent-light);
+      border-left: 3px solid var(--accent);
+    }
+
+    .lifelog-title-row {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      margin-bottom: 4px;
+    }
+
+    .lifelog-title {
+      font-size: 14px;
+      font-weight: 600;
+      flex: 1;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+
+    .lifelog-star {
+      color: var(--amber);
+      font-size: 14px;
+    }
+
+    .lifelog-meta {
+      display: flex;
+      gap: 16px;
+      font-size: 12px;
+      color: var(--text-muted);
+    }
+
+    /* Detail Panel */
+    .detail-panel {
+      display: flex;
+      flex-direction: column;
+      max-height: 600px;
+    }
+
+    .detail-empty {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      height: 300px;
+      color: var(--text-muted);
+      font-size: 14px;
+    }
+
+    .detail-header {
+      padding: 20px;
+      border-bottom: 1px solid var(--border);
+    }
+
+    .detail-header h3 {
+      font-size: 17px;
+      margin-bottom: 6px;
+    }
+
+    .detail-header .meta-row {
+      display: flex;
+      gap: 16px;
+      font-size: 13px;
+      color: var(--text-secondary);
+    }
+
+    .detail-content {
+      padding: 20px;
+      overflow-y: auto;
+      flex: 1;
+    }
+
+    .transcript-block {
+      margin-bottom: 16px;
+    }
+
+    .speaker-label {
+      font-size: 12px;
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+      margin-bottom: 4px;
+      padding: 2px 8px;
+      border-radius: 4px;
+      display: inline-block;
+    }
+
+    .speaker-label.user {
+      color: var(--accent);
+      background: var(--accent-light);
+    }
+
+    .speaker-label.other {
+      color: var(--cyan);
+      background: var(--cyan-light);
+    }
+
+    .transcript-text {
+      font-size: 14px;
+      color: var(--text-secondary);
+      line-height: 1.7;
+      padding-left: 8px;
+      border-left: 2px solid var(--border);
+      margin-top: 4px;
+    }
+
+    .heading-node {
+      font-size: 15px;
+      font-weight: 600;
+      color: var(--text-primary);
+      margin: 16px 0 8px;
+    }
+
+    .heading-node:first-child { margin-top: 0; }
+
+    /* Speaker Analytics */
+    .speaker-list {
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+    }
+
+    .speaker-row {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+
+    .speaker-name {
+      font-size: 13px;
+      font-weight: 500;
+      width: 100px;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+
+    .speaker-bar-wrap {
+      flex: 1;
+      height: 24px;
+      background: var(--bg-secondary);
+      border-radius: 6px;
+      overflow: hidden;
+    }
+
+    .speaker-bar {
+      height: 100%;
+      border-radius: 6px;
+      transition: width 0.5s ease;
+      display: flex;
+      align-items: center;
+      padding: 0 8px;
+      font-size: 11px;
+      font-weight: 600;
+      color: white;
+      min-width: fit-content;
+    }
+
+    .speaker-count {
+      font-size: 12px;
+      color: var(--text-muted);
+      width: 60px;
+      text-align: right;
+    }
+
+    /* Pagination */
+    .pagination {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 12px;
+      padding: 16px 20px;
+      border-top: 1px solid var(--border);
+    }
+
+    .page-info {
+      font-size: 13px;
+      color: var(--text-muted);
+    }
+
+    /* Loading */
+    .loading {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 40px;
+      color: var(--text-muted);
+      font-size: 14px;
+    }
+
+    .spinner {
+      width: 20px;
+      height: 20px;
+      border: 2px solid var(--border);
+      border-top-color: var(--accent);
+      border-radius: 50%;
+      animation: spin 0.6s linear infinite;
+      margin-right: 10px;
+    }
+
+    @keyframes spin { to { transform: rotate(360deg); } }
+
+    /* Empty State */
+    .empty-state {
+      text-align: center;
+      padding: 60px 20px;
+      color: var(--text-muted);
+    }
+
+    .empty-state .icon {
+      font-size: 48px;
+      margin-bottom: 16px;
+      opacity: 0.5;
+    }
+
+    .empty-state h3 {
+      font-size: 16px;
+      color: var(--text-secondary);
+      margin-bottom: 4px;
+    }
+
+    .empty-state p {
+      font-size: 13px;
+    }
+
+    /* Responsive */
+    @media (max-width: 1024px) {
+      .stats-grid { grid-template-columns: repeat(2, 1fr); }
+      .grid-2, .grid-2.wide-left { grid-template-columns: 1fr; }
+    }
+
+    @media (max-width: 640px) {
+      .header { padding: 12px 16px; }
+      .main { padding: 16px; }
+      .stats-grid { grid-template-columns: 1fr; }
+      .setup-card { padding: 32px 24px; }
+    }
+
+    /* Toast */
+    .toast {
+      position: fixed;
+      bottom: 24px;
+      right: 24px;
+      background: var(--bg-card);
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      padding: 12px 20px;
+      font-size: 13px;
+      box-shadow: var(--shadow);
+      transform: translateY(100px);
+      opacity: 0;
+      transition: all 0.3s;
+      z-index: 200;
+    }
+
+    .toast.show {
+      transform: translateY(0);
+      opacity: 1;
+    }
+
+    .toast.error { border-color: var(--rose); color: var(--rose); }
+    .toast.success { border-color: var(--green); color: var(--green); }
+
+    /* Tab Bar */
+    .tab-bar {
+      background: var(--bg-secondary);
+      border-bottom: 1px solid var(--border);
+      padding: 0 32px;
+      display: flex;
+      gap: 0;
+    }
+
+    .tab-btn {
+      padding: 12px 24px;
+      background: none;
+      border: none;
+      border-bottom: 2px solid transparent;
+      color: var(--text-muted);
+      font-size: 14px;
+      font-weight: 500;
+      cursor: pointer;
+      transition: all 0.15s;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .tab-btn:hover { color: var(--text-secondary); }
+    .tab-btn.active { color: var(--text-primary); border-bottom-color: var(--accent); }
+
+    .tab-icon { font-size: 16px; }
+    .tab-content { display: none; }
+    .tab-content.active { display: block; }
+
+    /* WHOOP Tab Styles */
+    .whoop-banner {
+      background: var(--bg-card);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      padding: 16px 24px;
+      margin-bottom: 24px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+    }
+
+    .whoop-banner .freshness {
+      color: var(--text-secondary);
+      font-size: 13px;
+    }
+
+    .whoop-banner .freshness strong {
+      color: var(--green);
+    }
+
+    .whoop-no-data {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      min-height: 400px;
+      padding: 32px;
+    }
+
+    .whoop-no-data-card {
+      background: var(--bg-card);
+      border: 1px solid var(--border);
+      border-radius: 16px;
+      padding: 48px;
+      max-width: 520px;
+      width: 100%;
+      text-align: center;
+    }
+
+    .whoop-no-data-card h2 { font-size: 24px; margin-bottom: 12px; }
+    .whoop-no-data-card p { color: var(--text-secondary); margin-bottom: 8px; font-size: 14px; }
+
+    .whoop-no-data-card code {
+      background: var(--bg-secondary);
+      padding: 4px 10px;
+      border-radius: 6px;
+      font-size: 13px;
+      color: var(--cyan);
+      border: 1px solid var(--border);
+    }
+
+    .whoop-metric-label {
+      font-size: 11px;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+      color: var(--text-muted);
+      margin-bottom: 2px;
+    }
+
+    .whoop-workout-row {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 12px 0;
+      border-bottom: 1px solid var(--border);
+    }
+
+    .whoop-workout-row:last-child { border-bottom: none; }
+
+    .whoop-workout-sport {
+      font-weight: 500;
+      font-size: 14px;
+    }
+
+    .whoop-workout-meta {
+      display: flex;
+      gap: 16px;
+      font-size: 13px;
+      color: var(--text-secondary);
+    }
+
+    .recovery-green { color: var(--green); }
+    .recovery-amber { color: var(--amber); }
+    .recovery-red { color: var(--rose); }
+  </style>
+</head>
+<body>
+
+  <!-- Header -->
+  <div class="header">
+    <div class="header-left">
+      <div class="logo">H</div>
+      <h1>Health <span>Dashboard</span></h1>
+    </div>
+    <div class="header-actions">
+      <div class="connection-status" id="connectionStatus">
+        <div class="status-dot" id="statusDot"></div>
+        <span id="statusText">Not connected</span>
+      </div>
+      <button class="btn btn-sm" id="settingsBtn" style="display:none;" onclick="showSetup()">Settings</button>
+      <button class="btn btn-sm" id="refreshBtn" style="display:none;" onclick="refreshData()">Refresh</button>
+    </div>
+  </div>
+
+  <!-- Tab Bar -->
+  <div class="tab-bar">
+    <button class="tab-btn active" onclick="switchTab('limitless', this)">
+      <span class="tab-icon">&#127912;</span> Limitless
+    </button>
+    <button class="tab-btn" onclick="switchTab('whoop', this)">
+      <span class="tab-icon">&#9829;</span> WHOOP
+    </button>
+  </div>
+
+  <!-- Limitless Tab -->
+  <div id="limitless-tab" class="tab-content active">
+
+  <!-- Setup Screen -->
+  <div id="setupScreen" class="setup-screen">
+    <div class="setup-card">
+      <div class="logo">L</div>
+      <h2>Connect Your Pendant</h2>
+      <p>Enter your Limitless API key to start viewing your lifelog data.</p>
+      <div class="input-group">
+        <input type="password" id="apiKeyInput" placeholder="Enter your API key..." autocomplete="off">
+        <button class="btn btn-primary" onclick="connectApi()">Connect</button>
+      </div>
+      <div id="setupError" class="setup-error"></div>
+      <p class="setup-hint">
+        Get your API key from
+        <a href="https://www.limitless.ai/developers" target="_blank" rel="noopener">limitless.ai/developers</a>.
+        Your key is stored locally in your browser.
+      </p>
+    </div>
+  </div>
+
+  <!-- Dashboard -->
+  <div id="dashboard" class="main" style="display:none;">
+
+    <!-- Stats -->
+    <div class="stats-grid">
+      <div class="stat-card">
+        <div class="stat-header">
+          <span class="stat-label">Total Lifelogs</span>
+          <div class="stat-icon purple">&#128196;</div>
+        </div>
+        <div class="stat-value" id="statTotal">-</div>
+        <div class="stat-sub" id="statTotalSub">Loading...</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-header">
+          <span class="stat-label">Total Duration</span>
+          <div class="stat-icon green">&#9201;</div>
+        </div>
+        <div class="stat-value" id="statDuration">-</div>
+        <div class="stat-sub" id="statDurationSub">Loading...</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-header">
+          <span class="stat-label">Starred</span>
+          <div class="stat-icon amber">&#11088;</div>
+        </div>
+        <div class="stat-value" id="statStarred">-</div>
+        <div class="stat-sub" id="statStarredSub">Loading...</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-header">
+          <span class="stat-label">Speakers Detected</span>
+          <div class="stat-icon rose">&#128101;</div>
+        </div>
+        <div class="stat-value" id="statSpeakers">-</div>
+        <div class="stat-sub" id="statSpeakersSub">Loading...</div>
+      </div>
+    </div>
+
+    <!-- Chart + Speaker Analytics -->
+    <div class="grid-2 wide-left">
+      <div class="card">
+        <div class="card-header">
+          <span class="card-title">Recording Activity</span>
+          <div style="display:flex;gap:6px;">
+            <button class="filter-chip active" data-range="7" onclick="setChartRange(7, this)">7d</button>
+            <button class="filter-chip" data-range="14" onclick="setChartRange(14, this)">14d</button>
+            <button class="filter-chip" data-range="30" onclick="setChartRange(30, this)">30d</button>
+          </div>
+        </div>
+        <div class="chart-container">
+          <canvas id="activityChart"></canvas>
+        </div>
+      </div>
+      <div class="card">
+        <div class="card-header">
+          <span class="card-title">Top Speakers</span>
+        </div>
+        <div class="card-body" id="speakerAnalytics">
+          <div class="loading"><div class="spinner"></div> Loading...</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Filters -->
+    <div class="filters-bar">
+      <div class="search-wrap">
+        <input class="search-input" type="text" id="searchInput" placeholder="Search lifelogs..." onkeydown="if(event.key==='Enter')applyFilters()">
+      </div>
+      <input class="date-input" type="date" id="dateFilter" onchange="applyFilters()">
+      <button class="filter-chip" id="starredFilter" onclick="toggleStarredFilter()">Starred only</button>
+      <button class="btn btn-sm btn-primary" onclick="applyFilters()">Search</button>
+      <button class="btn btn-sm" onclick="clearFilters()">Clear</button>
+    </div>
+
+    <!-- Lifelog List + Detail -->
+    <div class="grid-2">
+      <div class="card">
+        <div class="card-header">
+          <span class="card-title">Lifelogs</span>
+          <span class="page-info" id="resultCount"></span>
+        </div>
+        <div class="lifelog-list" id="lifelogList">
+          <div class="loading"><div class="spinner"></div> Loading lifelogs...</div>
+        </div>
+        <div class="pagination" id="pagination" style="display:none;">
+          <button class="btn btn-sm" id="prevBtn" onclick="prevPage()" disabled>Previous</button>
+          <span class="page-info" id="pageInfo"></span>
+          <button class="btn btn-sm" id="nextBtn" onclick="nextPage()">Next</button>
+        </div>
+      </div>
+      <div class="card">
+        <div class="card-header">
+          <span class="card-title">Detail</span>
+        </div>
+        <div class="detail-panel" id="detailPanel">
+          <div class="detail-empty">Select a lifelog to view details</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  </div><!-- /limitless-tab -->
+
+  <!-- WHOOP Tab -->
+  <div id="whoop-tab" class="tab-content">
+    <!-- No Data State -->
+    <div id="whoopNoData" class="whoop-no-data">
+      <div class="whoop-no-data-card">
+        <div class="logo" style="width:64px;height:64px;font-size:32px;margin:0 auto 24px;border-radius:16px;">W</div>
+        <h2>Connect Your WHOOP</h2>
+        <p>Run the pull script to fetch your WHOOP data:</p>
+        <p style="margin-top:12px;"><code>python whoop_pull.py</code></p>
+        <p style="margin-top:16px;color:var(--text-muted);font-size:13px;">
+          First time? Run <code>python whoop_auth.py</code> to authenticate.
+        </p>
+      </div>
+    </div>
+
+    <!-- WHOOP Dashboard (shown when data exists) -->
+    <div id="whoopDashboard" class="main" style="display:none;">
+
+      <!-- Data Freshness Banner -->
+      <div class="whoop-banner">
+        <div class="freshness">
+          WHOOP Data: <strong id="whoopFreshness">Loading...</strong>
+        </div>
+      </div>
+
+      <!-- Stats Grid -->
+      <div class="stats-grid">
+        <div class="stat-card">
+          <div class="stat-header">
+            <span class="stat-label">Recovery Score</span>
+            <div class="stat-icon green">&#9829;</div>
+          </div>
+          <div class="stat-value" id="whoopRecovery">-</div>
+          <div class="stat-sub" id="whoopRecoverySub">-</div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-header">
+            <span class="stat-label">HRV (RMSSD)</span>
+            <div class="stat-icon purple">&#9733;</div>
+          </div>
+          <div class="stat-value" id="whoopHrv">-</div>
+          <div class="stat-sub" id="whoopHrvSub">ms</div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-header">
+            <span class="stat-label">Sleep</span>
+            <div class="stat-icon cyan">&#9790;</div>
+          </div>
+          <div class="stat-value" id="whoopSleep">-</div>
+          <div class="stat-sub" id="whoopSleepSub">-</div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-header">
+            <span class="stat-label">Day Strain</span>
+            <div class="stat-icon amber">&#9889;</div>
+          </div>
+          <div class="stat-value" id="whoopStrain">-</div>
+          <div class="stat-sub" id="whoopStrainSub">-</div>
+        </div>
+      </div>
+
+      <!-- Charts Row -->
+      <div class="grid-2 wide-left">
+        <div class="card">
+          <div class="card-header">
+            <span class="card-title">Recovery & HRV Trend</span>
+            <div style="display:flex;gap:6px;">
+              <button class="filter-chip active" data-whoop-range="7" onclick="setWhoopChartRange(7, this)">7d</button>
+              <button class="filter-chip" data-whoop-range="14" onclick="setWhoopChartRange(14, this)">14d</button>
+              <button class="filter-chip" data-whoop-range="30" onclick="setWhoopChartRange(30, this)">30d</button>
+            </div>
+          </div>
+          <div class="chart-container">
+            <canvas id="whoopRecoveryChart"></canvas>
+          </div>
+        </div>
+        <div class="card">
+          <div class="card-header">
+            <span class="card-title">Sleep Duration</span>
+          </div>
+          <div class="chart-container">
+            <canvas id="whoopSleepChart"></canvas>
+          </div>
+        </div>
+      </div>
+
+      <!-- Workouts + Detailed Metrics -->
+      <div class="grid-2">
+        <div class="card">
+          <div class="card-header">
+            <span class="card-title">Recent Workouts</span>
+            <span class="page-info" id="whoopWorkoutCount"></span>
+          </div>
+          <div class="card-body" id="whoopWorkoutList">
+            <div class="empty-state"><div class="icon">&#127939;</div><p>No workouts found</p></div>
+          </div>
+        </div>
+        <div class="card">
+          <div class="card-header">
+            <span class="card-title">Health Metrics</span>
+          </div>
+          <div class="card-body" id="whoopMetrics">
+            <div class="loading"><div class="spinner"></div> Loading...</div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div><!-- /whoop-tab -->
+
+  <!-- Toast -->
+  <div class="toast" id="toast"></div>
+
+  <script>
+    // ── State ──
+    const API_BASE = 'https://api.limitless.ai/v1';
+    let apiKey = localStorage.getItem('limitless_api_key') || '';
+    let allLifelogs = [];
+    let filteredLifelogs = [];
+    let currentPage = 0;
+    let nextCursor = null;
+    let cursors = [null]; // cursor history for pagination
+    let chartInstance = null;
+    let chartRange = 7;
+    let starredOnly = false;
+    let selectedLifelogId = null;
+
+    const PAGE_SIZE = 20;
+
+    // ── Init ──
+    if (apiKey) {
+      verifyAndShow();
+    }
+
+    async function verifyAndShow() {
+      try {
+        setStatus('connecting');
+        const resp = await apiFetch('/lifelogs?limit=1');
+        if (resp.data) {
+          showDashboard();
+          loadDashboardData();
+        }
+      } catch (e) {
+        apiKey = '';
+        localStorage.removeItem('limitless_api_key');
+        setStatus('error');
+        showToast('Stored API key is invalid. Please re-enter.', 'error');
+      }
+    }
+
+    // ── API ──
+    async function apiFetch(path) {
+      const resp = await fetch(`${API_BASE}${path}`, {
+        headers: { 'X-API-Key': apiKey }
+      });
+      if (!resp.ok) {
+        const text = await resp.text();
+        throw new Error(`API error ${resp.status}: ${text}`);
+      }
+      return resp.json();
+    }
+
+    // ── Auth ──
+    async function connectApi() {
+      const input = document.getElementById('apiKeyInput');
+      const key = input.value.trim();
+      if (!key) {
+        showSetupError('Please enter an API key.');
+        return;
+      }
+
+      apiKey = key;
+      setStatus('connecting');
+
+      try {
+        const resp = await apiFetch('/lifelogs?limit=1');
+        if (resp.data) {
+          localStorage.setItem('limitless_api_key', key);
+          showSetupError('');
+          showDashboard();
+          loadDashboardData();
+        }
+      } catch (e) {
+        apiKey = '';
+        setStatus('error');
+        showSetupError('Invalid API key or connection failed. Check your key and try again.');
+      }
+    }
+
+    function showSetup() {
+      document.getElementById('setupScreen').style.display = 'flex';
+      document.getElementById('dashboard').style.display = 'none';
+      document.getElementById('settingsBtn').style.display = 'none';
+      document.getElementById('refreshBtn').style.display = 'none';
+      document.getElementById('apiKeyInput').value = apiKey;
+    }
+
+    function showDashboard() {
+      document.getElementById('setupScreen').style.display = 'none';
+      document.getElementById('dashboard').style.display = 'block';
+      document.getElementById('settingsBtn').style.display = 'inline-flex';
+      document.getElementById('refreshBtn').style.display = 'inline-flex';
+      setStatus('connected');
+    }
+
+    function showSetupError(msg) {
+      const el = document.getElementById('setupError');
+      el.textContent = msg;
+      el.style.display = msg ? 'block' : 'none';
+    }
+
+    // ── Load Dashboard Data ──
+    async function loadDashboardData() {
+      try {
+        await Promise.all([
+          loadStats(),
+          loadLifelogs(),
+        ]);
+      } catch (e) {
+        showToast('Error loading data: ' + e.message, 'error');
+      }
+    }
+
+    async function refreshData() {
+      showToast('Refreshing...', 'success');
+      allLifelogs = [];
+      currentPage = 0;
+      nextCursor = null;
+      cursors = [null];
+      selectedLifelogId = null;
+      document.getElementById('detailPanel').innerHTML = '<div class="detail-empty">Select a lifelog to view details</div>';
+      await loadDashboardData();
+    }
+
+    // ── Stats ──
+    async function loadStats() {
+      // Fetch all lifelogs for last 30 days for stats
+      const tz = Intl.DateTimeFormat().resolvedOptions().timeZone;
+      const now = new Date();
+      const thirtyDaysAgo = new Date(now);
+      thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
+
+      let all = [];
+      let cursor = null;
+      let pages = 0;
+
+      do {
+        const params = new URLSearchParams({
+          timezone: tz,
+          start: formatDateParam(thirtyDaysAgo),
+          end: formatDateParam(now),
+          limit: '100',
+          includeMarkdown: 'false',
+          includeHeadings: 'true',
+        });
+        if (cursor) params.set('cursor', cursor);
+
+        const resp = await apiFetch(`/lifelogs?${params}`);
+        const logs = resp.data?.lifelogs || [];
+        all = all.concat(logs);
+        cursor = resp.meta?.lifelogs?.nextCursor || null;
+        pages++;
+      } while (cursor && pages < 10);
+
+      allLifelogs = all;
+
+      // Total count
+      document.getElementById('statTotal').textContent = all.length;
+      document.getElementById('statTotalSub').textContent = 'Last 30 days';
+
+      // Duration
+      let totalMs = 0;
+      all.forEach(log => {
+        if (log.startTime && log.endTime) {
+          totalMs += new Date(log.endTime) - new Date(log.startTime);
+        }
+      });
+      const totalHrs = totalMs / 3600000;
+      document.getElementById('statDuration').textContent = totalHrs < 1
+        ? Math.round(totalMs / 60000) + 'm'
+        : totalHrs.toFixed(1) + 'h';
+      document.getElementById('statDurationSub').textContent = 'Total recording time';
+
+      // Starred
+      const starred = all.filter(l => l.isStarred).length;
+      document.getElementById('statStarred').textContent = starred;
+      document.getElementById('statStarredSub').textContent = 'Starred lifelogs';
+
+      // Speakers
+      const speakers = new Set();
+      all.forEach(log => {
+        (log.contents || []).forEach(node => {
+          if (node.speakerName) speakers.add(node.speakerName);
+          (node.children || []).forEach(child => {
+            if (child.speakerName) speakers.add(child.speakerName);
+          });
+        });
+      });
+      document.getElementById('statSpeakers').textContent = speakers.size;
+      document.getElementById('statSpeakersSub').textContent = 'Unique speakers';
+
+      // Build chart + speaker analytics
+      buildChart(all);
+      buildSpeakerAnalytics(all);
+    }
+
+    // ── Chart ──
+    function buildChart(logs) {
+      const now = new Date();
+      const labels = [];
+      const data = [];
+      const durationData = [];
+
+      for (let i = chartRange - 1; i >= 0; i--) {
+        const d = new Date(now);
+        d.setDate(d.getDate() - i);
+        const dateStr = d.toISOString().slice(0, 10);
+        labels.push(d.toLocaleDateString('en-US', { month: 'short', day: 'numeric' }));
+
+        const dayLogs = logs.filter(l => l.startTime && l.startTime.slice(0, 10) === dateStr);
+        data.push(dayLogs.length);
+
+        let dayMs = 0;
+        dayLogs.forEach(l => {
+          if (l.startTime && l.endTime) dayMs += new Date(l.endTime) - new Date(l.startTime);
+        });
+        durationData.push(Math.round(dayMs / 60000)); // minutes
+      }
+
+      if (chartInstance) chartInstance.destroy();
+
+      const ctx = document.getElementById('activityChart').getContext('2d');
+      chartInstance = new Chart(ctx, {
+        type: 'bar',
+        data: {
+          labels,
+          datasets: [
+            {
+              label: 'Recordings',
+              data,
+              backgroundColor: 'rgba(108, 99, 255, 0.6)',
+              borderColor: 'rgba(108, 99, 255, 1)',
+              borderWidth: 1,
+              borderRadius: 6,
+              yAxisID: 'y',
+            },
+            {
+              label: 'Duration (min)',
+              data: durationData,
+              type: 'line',
+              borderColor: 'rgba(34, 211, 238, 0.9)',
+              backgroundColor: 'rgba(34, 211, 238, 0.1)',
+              fill: true,
+              tension: 0.4,
+              pointRadius: 3,
+              pointBackgroundColor: 'rgba(34, 211, 238, 1)',
+              yAxisID: 'y1',
+            }
+          ]
+        },
+        options: {
+          responsive: true,
+          maintainAspectRatio: false,
+          interaction: { mode: 'index', intersect: false },
+          plugins: {
+            legend: {
+              display: true,
+              position: 'top',
+              labels: {
+                color: '#9aa0b4',
+                font: { size: 11 },
+                boxWidth: 12,
+                boxHeight: 12,
+                borderRadius: 3,
+                useBorderRadius: true,
+              }
+            }
+          },
+          scales: {
+            x: {
+              grid: { color: 'rgba(46, 51, 72, 0.5)' },
+              ticks: { color: '#6b7185', font: { size: 11 } }
+            },
+            y: {
+              position: 'left',
+              beginAtZero: true,
+              grid: { color: 'rgba(46, 51, 72, 0.5)' },
+              ticks: {
+                color: '#6b7185',
+                font: { size: 11 },
+                stepSize: 1,
+              },
+              title: {
+                display: true,
+                text: 'Recordings',
+                color: '#6b7185',
+                font: { size: 11 },
+              }
+            },
+            y1: {
+              position: 'right',
+              beginAtZero: true,
+              grid: { drawOnChartArea: false },
+              ticks: { color: '#6b7185', font: { size: 11 } },
+              title: {
+                display: true,
+                text: 'Minutes',
+                color: '#6b7185',
+                font: { size: 11 },
+              }
+            }
+          }
+        }
+      });
+    }
+
+    function setChartRange(range, btn) {
+      chartRange = range;
+      document.querySelectorAll('[data-range]').forEach(b => b.classList.remove('active'));
+      btn.classList.add('active');
+      buildChart(allLifelogs);
+    }
+
+    // ── Speaker Analytics ──
+    function buildSpeakerAnalytics(logs) {
+      const speakerCounts = {};
+      logs.forEach(log => {
+        (log.contents || []).forEach(node => {
+          countSpeaker(node, speakerCounts);
+          (node.children || []).forEach(child => countSpeaker(child, speakerCounts));
+        });
+      });
+
+      const sorted = Object.entries(speakerCounts)
+        .sort((a, b) => b[1] - a[1])
+        .slice(0, 8);
+
+      const container = document.getElementById('speakerAnalytics');
+
+      if (sorted.length === 0) {
+        container.innerHTML = '<div class="empty-state"><div class="icon">&#128100;</div><p>No speaker data available</p></div>';
+        return;
+      }
+
+      const max = sorted[0][1];
+      const colors = ['#6c63ff', '#22d3ee', '#34d399', '#fbbf24', '#f472b6', '#a78bfa', '#fb923c', '#94a3b8'];
+
+      container.innerHTML = '<div class="speaker-list">' + sorted.map(([name, count], i) => {
+        const pct = Math.round((count / max) * 100);
+        const color = colors[i % colors.length];
+        return `
+          <div class="speaker-row">
+            <span class="speaker-name" title="${escHtml(name)}">${escHtml(name)}</span>
+            <div class="speaker-bar-wrap">
+              <div class="speaker-bar" style="width:${pct}%;background:${color};">${count}</div>
+            </div>
+          </div>`;
+      }).join('') + '</div>';
+    }
+
+    function countSpeaker(node, counts) {
+      if (node.speakerName && node.type === 'blockquote') {
+        counts[node.speakerName] = (counts[node.speakerName] || 0) + 1;
+      }
+    }
+
+    // ── Lifelog List ──
+    async function loadLifelogs(cursor) {
+      const listEl = document.getElementById('lifelogList');
+      listEl.innerHTML = '<div class="loading"><div class="spinner"></div> Loading lifelogs...</div>';
+
+      const tz = Intl.DateTimeFormat().resolvedOptions().timeZone;
+      const params = new URLSearchParams({
+        timezone: tz,
+        limit: String(PAGE_SIZE),
+        direction: 'desc',
+        includeMarkdown: 'true',
+        includeHeadings: 'true',
+      });
+
+      const dateVal = document.getElementById('dateFilter').value;
+      if (dateVal) params.set('date', dateVal);
+
+      if (starredOnly) params.set('isStarred', 'true');
+      if (cursor) params.set('cursor', cursor);
+
+      try {
+        const resp = await apiFetch(`/lifelogs?${params}`);
+        filteredLifelogs = resp.data?.lifelogs || [];
+        nextCursor = resp.meta?.lifelogs?.nextCursor || null;
+
+        renderLifelogList();
+        updatePagination();
+      } catch (e) {
+        listEl.innerHTML = `<div class="empty-state"><div class="icon">&#9888;</div><h3>Error loading lifelogs</h3><p>${escHtml(e.message)}</p></div>`;
+      }
+    }
+
+    function renderLifelogList() {
+      const listEl = document.getElementById('lifelogList');
+      const searchTerm = document.getElementById('searchInput').value.toLowerCase().trim();
+
+      let logs = filteredLifelogs;
+      if (searchTerm) {
+        logs = logs.filter(l => {
+          const title = (l.title || '').toLowerCase();
+          const md = (l.markdown || '').toLowerCase();
+          return title.includes(searchTerm) || md.includes(searchTerm);
+        });
+      }
+
+      document.getElementById('resultCount').textContent = `${logs.length} results`;
+
+      if (logs.length === 0) {
+        listEl.innerHTML = '<div class="empty-state"><div class="icon">&#128203;</div><h3>No lifelogs found</h3><p>Try adjusting your filters</p></div>';
+        return;
+      }
+
+      listEl.innerHTML = logs.map(log => {
+        const title = log.title || 'Untitled';
+        const start = log.startTime ? new Date(log.startTime) : null;
+        const end = log.endTime ? new Date(log.endTime) : null;
+        const timeStr = start ? start.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' }) : '';
+        const dateStr = start ? start.toLocaleDateString('en-US', { month: 'short', day: 'numeric' }) : '';
+        let duration = '';
+        if (start && end) {
+          const mins = Math.round((end - start) / 60000);
+          duration = mins < 60 ? `${mins}m` : `${(mins / 60).toFixed(1)}h`;
+        }
+        const star = log.isStarred ? '<span class="lifelog-star">&#11088;</span>' : '';
+        const active = log.id === selectedLifelogId ? ' active' : '';
+
+        return `
+          <div class="lifelog-item${active}" onclick="selectLifelog('${log.id}')">
+            <div class="lifelog-title-row">
+              <span class="lifelog-title">${escHtml(title)}</span>
+              ${star}
+            </div>
+            <div class="lifelog-meta">
+              <span>${dateStr}</span>
+              <span>${timeStr}</span>
+              <span>${duration}</span>
+            </div>
+          </div>`;
+      }).join('');
+    }
+
+    function updatePagination() {
+      const pag = document.getElementById('pagination');
+      pag.style.display = 'flex';
+      document.getElementById('prevBtn').disabled = currentPage === 0;
+      document.getElementById('nextBtn').disabled = !nextCursor;
+      document.getElementById('pageInfo').textContent = `Page ${currentPage + 1}`;
+    }
+
+    function nextPage() {
+      if (!nextCursor) return;
+      currentPage++;
+      if (!cursors[currentPage]) cursors[currentPage] = nextCursor;
+      loadLifelogs(nextCursor);
+    }
+
+    function prevPage() {
+      if (currentPage === 0) return;
+      currentPage--;
+      loadLifelogs(cursors[currentPage]);
+    }
+
+    // ── Filters ──
+    function applyFilters() {
+      currentPage = 0;
+      cursors = [null];
+      loadLifelogs();
+    }
+
+    function clearFilters() {
+      document.getElementById('searchInput').value = '';
+      document.getElementById('dateFilter').value = '';
+      starredOnly = false;
+      document.getElementById('starredFilter').classList.remove('active');
+      applyFilters();
+    }
+
+    function toggleStarredFilter() {
+      starredOnly = !starredOnly;
+      document.getElementById('starredFilter').classList.toggle('active', starredOnly);
+      applyFilters();
+    }
+
+    // ── Detail View ──
+    function selectLifelog(id) {
+      selectedLifelogId = id;
+      const log = filteredLifelogs.find(l => l.id === id);
+      if (!log) return;
+
+      // Re-render list to update active state
+      renderLifelogList();
+
+      const panel = document.getElementById('detailPanel');
+      const title = log.title || 'Untitled';
+      const start = log.startTime ? new Date(log.startTime) : null;
+      const end = log.endTime ? new Date(log.endTime) : null;
+      const dateStr = start ? start.toLocaleDateString('en-US', {
+        weekday: 'long', year: 'numeric', month: 'long', day: 'numeric'
+      }) : '';
+      const timeStr = start ? start.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' }) : '';
+      const endTimeStr = end ? end.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' }) : '';
+      let duration = '';
+      if (start && end) {
+        const mins = Math.round((end - start) / 60000);
+        duration = mins < 60 ? `${mins} minutes` : `${(mins / 60).toFixed(1)} hours`;
+      }
+
+      let contentHtml = '';
+
+      if (log.contents && log.contents.length > 0) {
+        contentHtml = renderContents(log.contents);
+      } else if (log.markdown) {
+        contentHtml = `<div class="transcript-text">${escHtml(log.markdown).replace(/\n/g, '<br>')}</div>`;
+      } else {
+        contentHtml = '<div class="empty-state"><p>No content available</p></div>';
+      }
+
+      panel.innerHTML = `
+        <div class="detail-header">
+          <h3>${escHtml(title)} ${log.isStarred ? '&#11088;' : ''}</h3>
+          <div class="meta-row">
+            <span>${dateStr}</span>
+            <span>${timeStr}${endTimeStr ? ' - ' + endTimeStr : ''}</span>
+            <span>${duration}</span>
+          </div>
+        </div>
+        <div class="detail-content">${contentHtml}</div>`;
+    }
+
+    function renderContents(contents) {
+      return contents.map(node => {
+        if (node.type === 'heading1' || node.type === 'heading2' || node.type === 'heading3') {
+          return `<div class="heading-node">${escHtml(node.content || '')}</div>`;
+        }
+
+        if (node.type === 'blockquote') {
+          const speaker = node.speakerName || 'Unknown';
+          const isUser = node.speakerIdentifier === 'user';
+          const labelClass = isUser ? 'user' : 'other';
+          const text = node.content || '';
+          return `
+            <div class="transcript-block">
+              <div class="speaker-label ${labelClass}">${escHtml(speaker)}</div>
+              <div class="transcript-text">${escHtml(text)}</div>
+            </div>`;
+        }
+
+        // Children
+        if (node.children && node.children.length > 0) {
+          let html = '';
+          if (node.type === 'heading1' || node.type === 'heading2') {
+            html += `<div class="heading-node">${escHtml(node.content || '')}</div>`;
+          }
+          html += renderContents(node.children);
+          return html;
+        }
+
+        if (node.content) {
+          return `<div class="transcript-text">${escHtml(node.content)}</div>`;
+        }
+
+        return '';
+      }).join('');
+    }
+
+    // ── Helpers ──
+    function formatDateParam(d) {
+      return d.toISOString().slice(0, 10);
+    }
+
+    function escHtml(s) {
+      const div = document.createElement('div');
+      div.textContent = s;
+      return div.innerHTML;
+    }
+
+    function setStatus(state) {
+      const dot = document.getElementById('statusDot');
+      const text = document.getElementById('statusText');
+      dot.className = 'status-dot';
+      if (state === 'connected') {
+        dot.classList.add('connected');
+        text.textContent = 'Connected';
+      } else if (state === 'error') {
+        dot.classList.add('error');
+        text.textContent = 'Connection failed';
+      } else if (state === 'connecting') {
+        text.textContent = 'Connecting...';
+      } else {
+        text.textContent = 'Not connected';
+      }
+    }
+
+    function showToast(msg, type) {
+      const toast = document.getElementById('toast');
+      toast.textContent = msg;
+      toast.className = 'toast ' + (type || '') + ' show';
+      setTimeout(() => toast.classList.remove('show'), 3000);
+    }
+
+    // ── Tab Navigation ──
+    function switchTab(tabId, btn) {
+      document.querySelectorAll('.tab-content').forEach(t => t.classList.remove('active'));
+      document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+      document.getElementById(tabId + '-tab').classList.add('active');
+      btn.classList.add('active');
+
+      if (tabId === 'whoop') {
+        initWhoop();
+      }
+    }
+
+    // ── WHOOP Dashboard ──
+    const WHOOP_SPORT_NAMES = {
+      0: 'Activity', 1: 'Running', 2: 'Cycling', 3: 'Weightlifting', 4: 'Swimming',
+      5: 'Cross-training', 6: 'Yoga', 7: 'Hiking', 8: 'Walking', 9: 'Rowing',
+      10: 'HIIT', 12: 'Pilates', 15: 'Meditation', 16: 'Stretching', 17: 'Surfing',
+      22: 'Tennis', 24: 'Soccer', 25: 'Basketball', 33: 'Boxing', 43: 'Climbing',
+      44: 'Skiing', 48: 'Golf', 52: 'Martial Arts', 55: 'Dance', 56: 'Spin',
+      57: 'Functional Fitness', 63: 'Pickleball', 70: 'Paddleboarding',
+      71: 'Gymnastics', -1: 'Other',
+    };
+
+    let whoopRecoveryChartInstance = null;
+    let whoopSleepChartInstance = null;
+    let whoopChartRange = 7;
+    let whoopInitialized = false;
+
+    function initWhoop() {
+      if (whoopInitialized) return;
+      whoopInitialized = true;
+
+      if (typeof window.WHOOP_DATA === 'undefined' || !window.WHOOP_DATA) {
+        document.getElementById('whoopNoData').style.display = 'flex';
+        document.getElementById('whoopDashboard').style.display = 'none';
+        return;
+      }
+
+      document.getElementById('whoopNoData').style.display = 'none';
+      document.getElementById('whoopDashboard').style.display = 'block';
+
+      renderWhoopDashboard(window.WHOOP_DATA);
+    }
+
+    function renderWhoopDashboard(data) {
+      renderWhoopFreshness(data);
+      renderWhoopStats(data);
+      renderWhoopRecoveryChart(data, whoopChartRange);
+      renderWhoopSleepChart(data, whoopChartRange);
+      renderWhoopWorkouts(data);
+      renderWhoopMetrics(data);
+    }
+
+    function renderWhoopFreshness(data) {
+      const el = document.getElementById('whoopFreshness');
+      if (!data.fetched_at) {
+        el.textContent = 'Unknown';
+        return;
+      }
+      const fetched = new Date(data.fetched_at);
+      const now = new Date();
+      const diffMs = now - fetched;
+      const diffMins = Math.floor(diffMs / 60000);
+      const diffHrs = Math.floor(diffMins / 60);
+
+      if (diffMins < 1) el.textContent = 'Just now';
+      else if (diffMins < 60) el.textContent = `${diffMins} minutes ago`;
+      else if (diffHrs < 24) el.textContent = `${diffHrs} hours ago`;
+      else el.textContent = fetched.toLocaleDateString('en-US', { month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit' });
+    }
+
+    function renderWhoopStats(data) {
+      // Recovery
+      const recovery = data.recovery || [];
+      if (recovery.length > 0) {
+        const latest = recovery[0];
+        const score = latest.score || {};
+        const recoveryScore = score.recovery_score;
+        const el = document.getElementById('whoopRecovery');
+        el.textContent = recoveryScore != null ? recoveryScore + '%' : '-';
+        if (recoveryScore != null) {
+          el.className = 'stat-value ' + (recoveryScore >= 67 ? 'recovery-green' : recoveryScore >= 34 ? 'recovery-amber' : 'recovery-red');
+        }
+        document.getElementById('whoopRecoverySub').textContent = 'Latest recovery';
+
+        // HRV
+        const hrv = score.hrv_rmssd_milli;
+        document.getElementById('whoopHrv').textContent = hrv != null ? Math.round(hrv) : '-';
+        document.getElementById('whoopHrvSub').textContent = hrv != null ? 'ms RMSSD' : '-';
+      }
+
+      // Sleep
+      const sleep = data.sleep || [];
+      if (sleep.length > 0) {
+        const latest = sleep[0];
+        const score = latest.score || {};
+        const stageSummary = score.stage_summary || {};
+        const totalMs = stageSummary.total_sleep_time_milli || 0;
+        const hrs = (totalMs / 3600000).toFixed(1);
+        document.getElementById('whoopSleep').textContent = hrs + 'h';
+        const eff = score.sleep_efficiency_percentage;
+        document.getElementById('whoopSleepSub').textContent = eff != null ? eff + '% efficiency' : 'Latest sleep';
+      }
+
+      // Strain
+      const cycles = data.cycles || [];
+      if (cycles.length > 0) {
+        const latest = cycles[0];
+        const score = latest.score || {};
+        const strain = score.strain;
+        document.getElementById('whoopStrain').textContent = strain != null ? strain.toFixed(1) : '-';
+        const kj = score.kilojoule;
+        document.getElementById('whoopStrainSub').textContent = kj != null ? Math.round(kj) + ' kJ' : 'Latest cycle';
+      }
+    }
+
+    function renderWhoopRecoveryChart(data, days) {
+      const recovery = data.recovery || [];
+      const now = new Date();
+      const cutoff = new Date(now);
+      cutoff.setDate(cutoff.getDate() - days);
+
+      const filtered = recovery.filter(r => {
+        const d = r.created_at || r.start || '';
+        return d >= cutoff.toISOString();
+      }).reverse();
+
+      const labels = filtered.map(r => {
+        const d = new Date(r.created_at || r.start || '');
+        return d.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+      });
+
+      const recoveryScores = filtered.map(r => (r.score || {}).recovery_score || null);
+      const hrvValues = filtered.map(r => {
+        const v = (r.score || {}).hrv_rmssd_milli;
+        return v != null ? Math.round(v) : null;
+      });
+
+      if (whoopRecoveryChartInstance) whoopRecoveryChartInstance.destroy();
+
+      const ctx = document.getElementById('whoopRecoveryChart').getContext('2d');
+      whoopRecoveryChartInstance = new Chart(ctx, {
+        type: 'line',
+        data: {
+          labels,
+          datasets: [
+            {
+              label: 'Recovery %',
+              data: recoveryScores,
+              borderColor: 'rgba(52, 211, 153, 0.9)',
+              backgroundColor: 'rgba(52, 211, 153, 0.1)',
+              fill: true,
+              tension: 0.4,
+              pointRadius: 3,
+              pointBackgroundColor: 'rgba(52, 211, 153, 1)',
+              yAxisID: 'y',
+            },
+            {
+              label: 'HRV (ms)',
+              data: hrvValues,
+              borderColor: 'rgba(108, 99, 255, 0.9)',
+              backgroundColor: 'rgba(108, 99, 255, 0.1)',
+              fill: false,
+              tension: 0.4,
+              pointRadius: 3,
+              pointBackgroundColor: 'rgba(108, 99, 255, 1)',
+              yAxisID: 'y1',
+            }
+          ]
+        },
+        options: {
+          responsive: true,
+          maintainAspectRatio: false,
+          interaction: { mode: 'index', intersect: false },
+          plugins: {
+            legend: {
+              display: true, position: 'top',
+              labels: { color: '#9aa0b4', font: { size: 11 }, boxWidth: 12, boxHeight: 12, borderRadius: 3, useBorderRadius: true }
+            }
+          },
+          scales: {
+            x: { grid: { color: 'rgba(46, 51, 72, 0.5)' }, ticks: { color: '#6b7185', font: { size: 11 } } },
+            y: {
+              position: 'left', min: 0, max: 100,
+              grid: { color: 'rgba(46, 51, 72, 0.5)' },
+              ticks: { color: '#6b7185', font: { size: 11 } },
+              title: { display: true, text: 'Recovery %', color: '#6b7185', font: { size: 11 } }
+            },
+            y1: {
+              position: 'right',
+              grid: { drawOnChartArea: false },
+              ticks: { color: '#6b7185', font: { size: 11 } },
+              title: { display: true, text: 'HRV (ms)', color: '#6b7185', font: { size: 11 } }
+            }
+          }
+        }
+      });
+    }
+
+    function renderWhoopSleepChart(data, days) {
+      const sleep = data.sleep || [];
+      const now = new Date();
+      const cutoff = new Date(now);
+      cutoff.setDate(cutoff.getDate() - days);
+
+      const filtered = sleep.filter(r => {
+        const d = r.start || r.created_at || '';
+        return d >= cutoff.toISOString();
+      }).reverse();
+
+      const labels = filtered.map(r => {
+        const d = new Date(r.start || r.created_at || '');
+        return d.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+      });
+
+      const totalSleep = filtered.map(r => {
+        const s = (r.score || {}).stage_summary || {};
+        return Math.round((s.total_sleep_time_milli || 0) / 3600000 * 10) / 10;
+      });
+
+      const remSleep = filtered.map(r => {
+        const s = (r.score || {}).stage_summary || {};
+        return Math.round((s.total_rem_sleep_time_milli || 0) / 3600000 * 10) / 10;
+      });
+
+      const deepSleep = filtered.map(r => {
+        const s = (r.score || {}).stage_summary || {};
+        return Math.round((s.total_slow_wave_sleep_time_milli || 0) / 3600000 * 10) / 10;
+      });
+
+      if (whoopSleepChartInstance) whoopSleepChartInstance.destroy();
+
+      const ctx = document.getElementById('whoopSleepChart').getContext('2d');
+      whoopSleepChartInstance = new Chart(ctx, {
+        type: 'bar',
+        data: {
+          labels,
+          datasets: [
+            {
+              label: 'Deep',
+              data: deepSleep,
+              backgroundColor: 'rgba(108, 99, 255, 0.7)',
+              borderRadius: 4,
+            },
+            {
+              label: 'REM',
+              data: remSleep,
+              backgroundColor: 'rgba(34, 211, 238, 0.7)',
+              borderRadius: 4,
+            },
+            {
+              label: 'Total',
+              data: totalSleep,
+              type: 'line',
+              borderColor: 'rgba(52, 211, 153, 0.9)',
+              backgroundColor: 'transparent',
+              tension: 0.4,
+              pointRadius: 3,
+              pointBackgroundColor: 'rgba(52, 211, 153, 1)',
+            }
+          ]
+        },
+        options: {
+          responsive: true,
+          maintainAspectRatio: false,
+          interaction: { mode: 'index', intersect: false },
+          plugins: {
+            legend: {
+              display: true, position: 'top',
+              labels: { color: '#9aa0b4', font: { size: 11 }, boxWidth: 12, boxHeight: 12, borderRadius: 3, useBorderRadius: true }
+            }
+          },
+          scales: {
+            x: {
+              stacked: true,
+              grid: { color: 'rgba(46, 51, 72, 0.5)' },
+              ticks: { color: '#6b7185', font: { size: 11 } }
+            },
+            y: {
+              stacked: true,
+              beginAtZero: true,
+              grid: { color: 'rgba(46, 51, 72, 0.5)' },
+              ticks: { color: '#6b7185', font: { size: 11 } },
+              title: { display: true, text: 'Hours', color: '#6b7185', font: { size: 11 } }
+            }
+          }
+        }
+      });
+    }
+
+    function setWhoopChartRange(range, btn) {
+      whoopChartRange = range;
+      document.querySelectorAll('[data-whoop-range]').forEach(b => b.classList.remove('active'));
+      btn.classList.add('active');
+      if (window.WHOOP_DATA) {
+        renderWhoopRecoveryChart(window.WHOOP_DATA, range);
+        renderWhoopSleepChart(window.WHOOP_DATA, range);
+      }
+    }
+
+    function renderWhoopWorkouts(data) {
+      const workouts = (data.workouts || []).slice(0, 10);
+      const container = document.getElementById('whoopWorkoutList');
+      const countEl = document.getElementById('whoopWorkoutCount');
+
+      countEl.textContent = (data.workouts || []).length + ' total';
+
+      if (workouts.length === 0) {
+        container.innerHTML = '<div class="empty-state"><div class="icon">&#127939;</div><p>No workouts found</p></div>';
+        return;
+      }
+
+      container.innerHTML = workouts.map(w => {
+        const score = w.score || {};
+        const sportName = WHOOP_SPORT_NAMES[w.sport_id] || `Sport ${w.sport_id}`;
+        const strain = score.strain != null ? score.strain.toFixed(1) : '-';
+        const date = w.start ? new Date(w.start).toLocaleDateString('en-US', { month: 'short', day: 'numeric' }) : '';
+        const avgHr = score.average_heart_rate ? Math.round(score.average_heart_rate) + ' bpm' : '';
+
+        return `
+          <div class="whoop-workout-row">
+            <div>
+              <div class="whoop-workout-sport">${escHtml(sportName)}</div>
+              <div style="font-size:12px;color:var(--text-muted);">${date}</div>
+            </div>
+            <div class="whoop-workout-meta">
+              <span>Strain: ${strain}</span>
+              ${avgHr ? `<span>${avgHr}</span>` : ''}
+            </div>
+          </div>`;
+      }).join('');
+    }
+
+    function renderWhoopMetrics(data) {
+      const container = document.getElementById('whoopMetrics');
+      const recovery = (data.recovery || [])[0];
+      const sleep = (data.sleep || [])[0];
+
+      if (!recovery && !sleep) {
+        container.innerHTML = '<div class="empty-state"><p>No metrics available</p></div>';
+        return;
+      }
+
+      let html = '<div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;">';
+
+      if (recovery) {
+        const s = recovery.score || {};
+        const metrics = [
+          ['Resting HR', s.resting_heart_rate != null ? s.resting_heart_rate + ' bpm' : '-'],
+          ['SpO2', s.spo2_percentage != null ? s.spo2_percentage + '%' : '-'],
+          ['Skin Temp', s.skin_temp_celsius != null ? s.skin_temp_celsius.toFixed(1) + ' °C' : '-'],
+        ];
+        metrics.forEach(([label, value]) => {
+          html += `
+            <div>
+              <div class="whoop-metric-label">${label}</div>
+              <div style="font-size:18px;font-weight:600;">${value}</div>
+            </div>`;
+        });
+      }
+
+      if (sleep) {
+        const s = sleep.score || {};
+        html += `
+          <div>
+            <div class="whoop-metric-label">Respiratory Rate</div>
+            <div style="font-size:18px;font-weight:600;">${s.respiratory_rate != null ? s.respiratory_rate.toFixed(1) + ' rpm' : '-'}</div>
+          </div>`;
+      }
+
+      // Averages from recent data
+      const recentRecovery = (data.recovery || []).slice(0, 7);
+      if (recentRecovery.length > 1) {
+        const avgHrv = recentRecovery.reduce((sum, r) => sum + ((r.score || {}).hrv_rmssd_milli || 0), 0) / recentRecovery.length;
+        const avgRhr = recentRecovery.reduce((sum, r) => sum + ((r.score || {}).resting_heart_rate || 0), 0) / recentRecovery.length;
+        html += `
+          <div>
+            <div class="whoop-metric-label">7-Day Avg HRV</div>
+            <div style="font-size:18px;font-weight:600;">${Math.round(avgHrv)} ms</div>
+          </div>
+          <div>
+            <div class="whoop-metric-label">7-Day Avg RHR</div>
+            <div style="font-size:18px;font-weight:600;">${Math.round(avgRhr)} bpm</div>
+          </div>`;
+      }
+
+      html += '</div>';
+      container.innerHTML = html;
+    }
+
+    // ── Load WHOOP data on page load if available ──
+    if (typeof window.WHOOP_DATA !== 'undefined' && window.WHOOP_DATA) {
+      // Data exists — user can switch to WHOOP tab anytime
+    }
+  </script>
+  <script src="whoop_data.js" onerror=""></script>
+</body>
+</html>

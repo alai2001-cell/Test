@@ -1,0 +1,8 @@
+.env
+tokens.json
+data/*.json
+whoop_data.js
+__pycache__/
+*.pyc
+*.pyo
+.venv/
