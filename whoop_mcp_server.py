@@ -71,7 +71,7 @@ def whoop_summary() -> dict:
         stage = score.get("stage_summary", {})
         summary["data"]["sleep"] = {
             "total_in_bed_hours": round(
-                score.get("total_in_bed_time_milli", 0) / 3600000, 1
+                stage.get("total_in_bed_time_milli", 0) / 3600000, 1
             ),
             "total_sleep_hours": round(
                 stage.get("total_sleep_time_milli", 0) / 3600000, 1
@@ -166,7 +166,7 @@ def whoop_sleep(days: int = 7) -> dict:
                 stage.get("total_sleep_time_milli", 0) / 3600000, 1
             ),
             "total_in_bed_hours": round(
-                score.get("total_in_bed_time_milli", 0) / 3600000, 1
+                stage.get("total_in_bed_time_milli", 0) / 3600000, 1
             ),
             "sleep_efficiency": score.get("sleep_efficiency_percentage"),
             "rem_hours": round(
