@@ -9,6 +9,26 @@ A unified health dashboard with WHOOP API integration and MCP server for Claude.
 - **MCP Server**: 6 tools for Claude to query your WHOOP data
 - **Automated Pipeline**: One script pulls data and generates the dashboard data file
 
+## Quick Start
+
+**Want to preview the dashboard with fake data?**
+
+```bash
+./setup.sh demo    # install deps, generate demo data
+./setup.sh serve   # start local server at http://localhost:8080
+```
+
+Open http://localhost:8080/index.html and click the **WHOOP** tab — you'll see 30 days of realistic demo data with a DEMO badge.
+
+**Ready to use your real WHOOP data?**
+
+```bash
+./setup.sh real    # install deps, run OAuth, pull last 30 days
+./setup.sh serve
+```
+
+You'll need WHOOP developer credentials first (see [Setup](#setup) below).
+
 ## Setup
 
 ### Prerequisites
@@ -114,6 +134,8 @@ index.html              # Unified Health Dashboard (Limitless + WHOOP tabs)
 whoop_auth.py           # OAuth2 authentication flow
 whoop_pull.py           # Data fetching + dashboard export
 whoop_mcp_server.py     # MCP server (6 tools)
+demo_data.py            # Generate fake WHOOP data to preview the dashboard
+setup.sh                # One-command setup (demo | real | serve)
 pyproject.toml          # Python dependencies
 .env.example            # Credential template
 .mcp.json               # MCP server registration
