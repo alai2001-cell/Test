@@ -53,6 +53,14 @@ python whoop_auth.py
 
 This opens your browser to log in to WHOOP and authorize the app. Tokens are saved to `tokens.json` (gitignored) and auto-refresh when expired.
 
+**Headless environments** (no browser available):
+
+```bash
+python whoop_auth.py --manual
+```
+
+This prints an auth URL to visit on any device. After you authorize, WHOOP redirects to `http://localhost:8765/callback?code=...` — that page will fail to load, but the URL contains the code. Copy the full URL from your browser's address bar and paste it back into the script.
+
 ### 5. Pull Your Data
 
 ```bash

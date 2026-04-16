@@ -3,6 +3,7 @@
 import json
 import os
 import secrets
+import sys
 import time
 import webbrowser
 from http.server import HTTPServer, BaseHTTPRequestHandler
@@ -78,6 +79,80 @@ def get_valid_token() -> str:
         tokens = _refresh_token(tokens)
 
     return tokens["access_token"]
+
+
+def _exchange_code(code: str) -> None:
+    """Exchange an authorization code for tokens."""
+    resp = httpx.post(
+        TOKEN_URL,
+        data={
+            "grant_type": "authorization_code",
+            "code": code,
+            "redirect_uri": REDIRECT_URI,
+            "client_id": CLIENT_ID,
+            "client_secret": CLIENT_SECRET,
+        },
+        headers={"Content-Type": "application/x-www-form-urlencoded"},
+    )
+    if resp.status_code != 200:
+        print(f"Error exchanging code: {resp.status_code}")
+        print(resp.text)
+        return
+    _save_tokens(resp.json())
+    print("Authentication successful! You can now run whoop_pull.py to fetch data.")
+
+
+def run_manual_flow() -> None:
+    """Run OAuth2 in manual mode — useful for headless environments.
+
+    Prints the auth URL. The user visits it on any device, WHOOP redirects
+    to http://localhost:8765/callback?code=... (which fails to load — that's
+    fine). The user pastes the full redirect URL back; this script extracts
+    the code and exchanges it for tokens.
+    """
+    if not CLIENT_ID or not CLIENT_SECRET:
+        print("Error: WHOOP_CLIENT_ID and WHOOP_CLIENT_SECRET must be set in .env")
+        return
+
+    state = secrets.token_urlsafe(32)
+    params = {
+        "client_id": CLIENT_ID,
+        "response_type": "code",
+        "redirect_uri": REDIRECT_URI,
+        "scope": SCOPES,
+        "state": state,
+    }
+    authorize_url = f"{AUTH_URL}?{urlencode(params)}"
+
+    print("Manual OAuth flow\n")
+    print("1. Open this URL in a browser on any device:\n")
+    print(f"   {authorize_url}\n")
+    print("2. Log in and authorize the app.")
+    print("3. Your browser will try to load http://localhost:8765/callback?code=...")
+    print("   (The page will fail to load — that is expected.)")
+    print("4. Copy the FULL URL from your browser's address bar and paste below.\n")
+
+    pasted = input("Paste the redirect URL here: ").strip()
+    if not pasted:
+        print("No URL pasted. Aborting.")
+        return
+
+    query = parse_qs(urlparse(pasted).query)
+    if "error" in query:
+        print(f"Authorization failed: {query['error'][0]}")
+        return
+
+    code = query.get("code", [None])[0]
+    received_state = query.get("state", [None])[0]
+
+    if not code:
+        print("Error: no 'code' parameter found in the URL.")
+        return
+    if received_state != state:
+        print("Warning: state mismatch. Continuing anyway (not recommended in production).")
+
+    print("Exchanging authorization code for tokens...")
+    _exchange_code(code)
 
 
 def run_auth_flow() -> None:
@@ -162,27 +237,11 @@ def run_auth_flow() -> None:
 
     # Exchange authorization code for tokens
     print("Exchanging authorization code for tokens...")
-    resp = httpx.post(
-        TOKEN_URL,
-        data={
-            "grant_type": "authorization_code",
-            "code": auth_code,
-            "redirect_uri": REDIRECT_URI,
-            "client_id": CLIENT_ID,
-            "client_secret": CLIENT_SECRET,
-        },
-        headers={"Content-Type": "application/x-www-form-urlencoded"},
-    )
-
-    if resp.status_code != 200:
-        print(f"Error exchanging code: {resp.status_code}")
-        print(resp.text)
-        return
-
-    token_data = resp.json()
-    _save_tokens(token_data)
-    print("Authentication successful! You can now run whoop_pull.py to fetch data.")
+    _exchange_code(auth_code)
 
 
 if __name__ == "__main__":
-    run_auth_flow()
+    if len(sys.argv) > 1 and sys.argv[1] == "--manual":
+        run_manual_flow()
+    else:
+        run_auth_flow()
